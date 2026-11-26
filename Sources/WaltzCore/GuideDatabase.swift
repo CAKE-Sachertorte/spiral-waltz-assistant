@@ -29,6 +29,7 @@ public struct GuideDatabase: Codable {
     }
     public func character(named text: String) -> CharacterGuide? {
         let key = normalize(text).replacingOccurrences(of: "巴代伦卡", with: "巴伐伦卡")
+            .replacingOccurrences(of: "玛菲利娅", with: "玛菲利亚")
         if let exact = characters.first(where: { ([ $0.name ] + $0.aliases).contains { normalize($0) == key } }) { return exact }
         // Only the name badge is supplied here. Permit a family suffix, never arbitrary prose.
         return characters.sorted { $0.name.count > $1.name.count }.first {
@@ -93,7 +94,7 @@ public struct GuideDatabase: Codable {
     }
     private static func answerKey(_ text: String) -> String {
         var key = normalize(text)
-        for (long, short) in [("黑色", "黑"), ("蓝色", "蓝"), ("绿色", "绿"), ("红色", "红"), ("报复", "复仇"), ("防御结界", "防御"), ("隐形魔法", "隐形"), ("结构问题", "体制问题")] {
+        for (long, short) in [("黑色", "黑"), ("蓝色", "蓝"), ("绿色", "绿"), ("红色", "红"), ("报复", "复仇"), ("防御结界", "防御"), ("隐形魔法", "隐形"), ("隐身魔法", "隐形"), ("真有效吗", "真的有效吗"), ("结构问题", "体制问题")] {
             if key == long { key = short }
         }
         return key

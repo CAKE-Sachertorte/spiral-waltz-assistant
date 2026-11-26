@@ -10,12 +10,18 @@ func XCTAssertNil<T>(_ value: T?, file: String = #filePath, line: Int = #line) {
     assertions += 1
     if value != nil { failures += 1; print("FAIL \(file):\(line): expected nil") }
 }
+let nov26 = Nov26Tests()
+nov26.testBadgeSpellingAndAttachedMenus()
+nov26.testAttachedAnswerVariantsAcrossBothSources()
+nov26.testCompetitionAfterResultContinuesWithoutASkip()
+nov26.testPassiveCompetitionKeepsWanderingAndIgnoresOpponentIdentity()
+nov26.testIntelligenceScreenshotStillContinues()
 EavesdropTests().testAttachedVariantChoosesLowerOption()
 EavesdropTests().testWanderingTwoChoiceEventDoesNotDependOnWords()
 NativeQuizTests().testFirstNativeQuizOptionIsNotClipped()
 NativeClientTests().testMenuDanceSkipIsRecovered()
 NativeClientTests().testNativeClientDialogue()
-SkipEndTests().testSkipRequiresVisibleButtonAndRetriesItsActualPosition()
+SkipEndTests().testCompetitionUsesSkipAndFallsBackToCenter()
 SkipEndTests().testPartialExhaustionStops()
 SkipEndTests().testAttachedScreens()
 FlowFixTests().testTopicsSurviveMissingReturnLabel()

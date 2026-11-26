@@ -2,16 +2,16 @@ import Foundation
 import WaltzCore
 final class SkipEndTests {
  let db = try! GuideDatabase.bundled()
- func testSkipRequiresVisibleButtonAndRetriesItsActualPosition() {
+ func testCompetitionUsesSkipAndFallsBackToCenter() {
   var engine=Engine(database:db)
   let beauty=TextBox(text:"主动比美",confidence:1,rect:UnitRect(x:0.1,y:0.5,width:0.2,height:0.02))
   _ = engine.next(Observation(scene:.menu,character:"凌格兰",hearts:3,buttons:[beauty]))
-  XCTAssertEqual(engine.next(Observation(scene:.unknown)).kind,.wait)
+  XCTAssertEqual(engine.next(Observation(scene:.unknown)).point,Engine.center)
   let skip=TextBox(text:"跳过",confidence:1,rect:UnitRect(x:0.80,y:0.85,width:0.1,height:0.025))
   let scene=Observation(scene:.danceScene,lines:[skip])
   XCTAssertEqual(engine.next(scene).point,skip.center)
   XCTAssertEqual(engine.next(scene).point,skip.center)
-  XCTAssertEqual(engine.next(Observation(scene:.unknown)).kind,.wait)
+  XCTAssertEqual(engine.next(Observation(scene:.unknown)).point,Engine.center)
   XCTAssertEqual(engine.next(Observation(scene:.danceScene,text:"总分")).point,Engine.center)
  }
  func testPartialExhaustionStops() {

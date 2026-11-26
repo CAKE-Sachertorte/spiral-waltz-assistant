@@ -42,7 +42,18 @@ public struct SceneClassifier {
         let navLabels = Set(navigation.map { normalize($0.text) })
         if navLabels.contains("闲逛") && !navLabels.isDisjoint(with: ["事件信息", "找人", "离开舞会"]) { return make(.hub, navigation) }
         if ["离开舞会", "事件信息", "找人", "商城", "服装商店"].contains(where: { labels.contains($0) }) { return make(.blocked) }
-        if key.contains("获得情报") || key.contains("好感度提升") || key.contains("点击屏幕继续") { return make(.reward) }
+        let resultTitle = visible.contains {
+            ["胜利", "失败"].contains(normalize($0.text)) && $0.rect.height > 0.035
+                && (0.25...0.75).contains($0.center.y)
+        }
+        if key.contains("获得情报") || key.contains("好感度提升") || key.contains("点击屏幕继") || resultTitle { return make(.reward) }
+        // Paired style rows identify a contest even when its names/skip text are absent.
+        let styles: Set<String> = ["活泼", "成熟", "保暖", "清凉", "清纯", "性感", "可爱", "高贵", "华丽"]
+        let styleRows = visible.filter {
+            (0.05...0.28).contains($0.center.y) && ($0.center.x < 0.20 || $0.center.x > 0.80)
+                && styles.contains(normalize($0.text))
+        }
+        if !key.contains("任务信息") && Set(styleRows.map { normalize($0.text) }).count >= 3 { return make(.danceScene) }
         let eventOptions = visible.filter {
             $0.center.x > 0.70 && (0.32...0.77).contains($0.center.y)
                 && $0.rect.width < 0.43 && (1...10).contains(normalize($0.text).count)

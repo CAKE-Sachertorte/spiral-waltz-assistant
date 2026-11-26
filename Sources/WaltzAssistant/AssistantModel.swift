@@ -181,8 +181,9 @@ struct Calibration: Codable {
                 let fp = observation.fingerprint
                 stable = fp == previous ? stable + 1 : 1
                 previous = fp
-                if stable < ((observation.scene == .hub || observation.scene == .finished) ? 1 : 2) { try await Task.sleep(nanoseconds: 650_000_000); continue }
-                if fp == lastAction && Date().timeIntervalSince(lastActionAt) < 2.4 { try await Task.sleep(nanoseconds: 650_000_000); continue }
+                let competitionFrame = observation.scene == .danceScene || (engine.competitionActive && observation.scene == .unknown)
+                if stable < ((competitionFrame || observation.scene == .hub || observation.scene == .finished) ? 1 : 2) { try await Task.sleep(nanoseconds: 650_000_000); continue }
+                if (competitionFrame || fp == lastAction) && Date().timeIntervalSince(lastActionAt) < (competitionFrame ? 3.0 : 2.4) { try await Task.sleep(nanoseconds: 650_000_000); continue }
                 let decision = engine.next(observation)
                 status = decision.message
                 if decision.kind == .wait {
@@ -194,7 +195,7 @@ struct Calibration: Codable {
                     if decision.kind == .done || decision.kind == .pause { stop(decision.message); return }
                     if dryRun { stop("仅观察：\(decision.message)；未发送点击"); return }
                     if fp == lastAction { repeatCount += 1 } else { repeatCount = 0 }
-                    if repeatCount >= 2 { stop("点击后界面没有变化，已停止"); return }
+                    if repeatCount >= 2 && !competitionFrame { stop("点击后界面没有变化，已停止"); return }
                     guard let point = decision.point, let crop = calibration?.rect else { throw DriverError.invalidCalibration }
                     guard generation == token, !Task.isCancelled else { return }
                     try driver.click(point, capture: captured, crop: crop); actionCount += 1

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>舞会助手 v1.3.2 · 发布说明</title>
+<title>舞会助手 v1.3.3 · 发布说明</title>
 <style>
   :root{
     --bg:#f6f7f9; --card:#ffffff; --ink:#1f2330; --sub:#5b6270; --line:#e8eaef;
@@ -74,56 +74,83 @@
 <div class="wrap">
   <div class="card">
     <div class="hero">
-      <span class="badge">v1.3.2 · 开源首发</span>
+      <span class="badge">v1.3.3 · 开源发布</span>
       <h1>舞会助手 Waltz Assistant</h1>
-      <p class="lede">完全本地运行的 macOS 舞会游戏自动化助手——不需要 API Key，不上传截图，开箱即用。</p>
+      <p class="lede">为《螺旋圆舞曲》舞会流程准备的 macOS 小助手。自动处理聊天、情报与好感问答，让重复操作轻松一点。画面识别与决策均在本机完成，无需 API Key，不上传截图。</p>
     </div>
     <div class="body">
       <h2>核心特性</h2>
       <ul class="feat">
-        <li><b>本地运行</b><br>全程离线，不联网、不上传任何截图</li>
-        <li><b>无需 API Key</b><br>开箱即用，不用注册任何服务</li>
-        <li><b>Vision 识别</b><br>原生识别游戏画面与铭牌</li>
-        <li><b>自动通关</b><br>满心、情报收集、问答一站完成</li>
-        <li><b>安全可控</b><br>演练模式先观察再执行</li>
-        <li><b>随时停止</b><br>快捷键 / 鼠标移角即停</li>
+        <li><b>本地识别</b><br>使用 Apple Vision 读取画面，截图不上传云端</li>
+        <li><b>两种画面来源</b><br>支持 iPhone 镜像与 Mac 游戏客户端</li>
+        <li><b>处理日常互动</b><br>补满爱心、收集情报，按内置攻略回答问题</li>
+        <li><b>可选自动切人</b><br>支持跳舞、比美；完成后可闲逛寻找下一位</li>
+        <li><b>先观察，再执行</b><br>默认仅观察，可先核对识别结果与下一步操作</li>
+        <li><b>随时暂停或停止</b><br>支持按钮、快捷键与鼠标移至左上角停止</li>
       </ul>
+
+      <h2>更新与纠错日志</h2>
+      <p><b>v1.3.3 · 2026-11-26</b><br>以下修复同时适用于 Mac 游戏客户端与 iPhone 镜像。</p>
+      <ul>
+        <li><b>人物铭牌：</b>兼容「玛菲利娅／玛菲利亚」两种写法。低置信度铭牌会继续局部复读，补充冈萨洛完整铭牌词表。</li>
+        <li><b>比赛跳过：</b>优先点击识别到的白字「跳过」。未识别到时，在已确认的比赛流程中每隔约 3 秒点击中央，等待动画自然结束。</li>
+        <li><b>结算接续：</b>胜利、失败与比赛结束画面继续确认，处理仍需再点一次屏幕的情况。</li>
+        <li><b>被动比美：</b>闲逛时遇到其他玩家并进入比美，不再视为流程异常；结算后继续闲逛，对手不会覆盖答题人物。</li>
+        <li><b>答案匹配：</b>兼容「隐身魔法／隐形魔法」「真有效吗／真的有效吗」等价文本，修复吉当、琉、妮柯斯等人的相关问答。</li>
+      </ul>
+      <p class="lede">已用所提供的截图做离线识别与流程回归。冈萨洛附件本身可识别，偶发漏读增加了复读处理，仍需实际使用验证。游戏窗口失去焦点时仍会停止，防止误点其他应用。</p>
+      <details>
+        <summary>查看 v1.3.2 及此前修订</summary>
+        <ul>
+          <li>支持 Mac 客户端布局，修复较高位置的问答首项漏读。</li>
+          <li>玛格达发言时保留已确认的答题人物。</li>
+          <li>闲逛偷听事件选择下方第二项，兼容「不关我事」等不同说法；识别到无新人物提示后停止。</li>
+        </ul>
+      </details>
+      <p><a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/blob/main/CHANGELOG.md">完整更新、纠错与截图对应记录 →</a></p>
 
       <h2>下载</h2>
       <div class="dl">
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.2/WaltzAssistant-v1.3.2-mac-arm64.zip">
-          <div class="nm">Mac 安装包 (Apple Silicon)</div>
-          <div class="sz">WaltzAssistant-v1.3.2-mac-arm64.zip · 0.7 MB</div>
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.3/WaltzAssistant-v1.3.3-mac-arm64.zip">
+          <div class="nm">Mac 应用包 · Apple Silicon</div>
+          <div class="sz">WaltzAssistant-v1.3.3-mac-arm64.zip</div>
         </a>
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.2/WaltzAssistant-v1.3.2-source.zip">
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.3/WaltzAssistant-v1.3.3-source.zip">
           <div class="nm">源码包</div>
-          <div class="sz">WaltzAssistant-v1.3.2-source.zip · 33.9 MB</div>
+          <div class="sz">WaltzAssistant-v1.3.3-source.zip</div>
         </a>
       </div>
-      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.2">查看 Release 页面</a>
+      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.3">查看完整发布与下载</a>
 
       <h2>系统要求</h2>
       <div class="meta">
-        <div><b>芯片</b>　Apple Silicon (M1/M2/M3…)</div>
-        <div><b>系统</b>　macOS 14 及以上</div>
-        <div><b>依赖</b>　已连接的 iPhone 镜像竖屏窗口</div>
-        <div><b>权限</b>　屏幕录制 + 辅助功能</div>
+        <div><b>芯片</b>　Apple Silicon（M 系列）</div>
+        <div><b>系统</b>　macOS 14 或更高版本</div>
+        <div><b>画面</b>　Mac 游戏客户端 / iPhone 镜像</div>
+        <div><b>权限</b>　屏幕录制与辅助功能</div>
       </div>
 
       <h2>快速上手</h2>
       <ol>
-        <li>解压安装包，双击 <code>舞会助手.app</code> 打开；把游戏停在当前人物的<b>互动菜单</b>（能看到铭牌、三颗爱心和「和他/她聊聊」按钮）。</li>
-        <li>在程序里点「屏幕录制」和「辅助功能」，到系统设置里为<b>舞会助手本身</b>授权，授权后重开程序。</li>
-        <li>点「识别窗口」→「拖框校准」，圈出完整手机游戏画面（排除镜像顶部工具栏和灰色边框），再点「识别窗口」核对人物与爱心。</li>
-        <li>保持「仅观察，不点击游戏」开启，点「演练当前人物」核对要执行的第一步。</li>
-        <li>确认无误后关闭「仅观察」，点「运行当前人物」——程序自动完成满心、情报和问答后停止。</li>
+        <li>解压应用包，打开 <code>舞会助手.app</code>。启动游戏客户端或连接 iPhone 镜像，把游戏停在当前人物的<b>互动菜单</b>，确保铭牌、爱心与操作按钮清晰可见。</li>
+        <li>在助手中点击「屏幕录制」和「辅助功能」，按提示到系统设置为<b>舞会助手</b>授权，再退出并重新打开助手。</li>
+        <li>选择对应的「画面来源」，点击「识别窗口」，需要时用「拖框校准」圈出完整游戏内容，排除标题栏及两侧边框。再次识别，核对人物与爱心。</li>
+        <li>保持「仅观察，不点击游戏」开启，点击「演练当前人物」，核对准备执行的第一步；此时不会点击游戏。</li>
+        <li>确认无误后关闭「仅观察」，点击「运行当前人物」。不开启「自动切人」时，当前人物流程完成后停止；开启后会通过闲逛寻找下一位，直到识别到没有新人物的提示或遇到需要处理的情况。</li>
       </ol>
-      <div class="note">运行期间不要操作手机、切换人物或遮挡镜像窗口。随时可用 <code>Control+Option+S</code> 停止，或把鼠标移到主屏幕左上角停止。</div>
+      <div class="note">运行时请让游戏窗口保持前台，避免同时手动操作或移动、缩放窗口。可随时按 <code>Control+Option+S</code>，或将鼠标移到主屏幕左上角停止。遇到无法可靠识别的画面或答案时，助手会等待或停止，请查看操作记录。</div>
+
+      <h2>使用说明</h2>
+      <ul>
+        <li>内置 53 位角色、22 类题目的攻略数据；实际操作以当前画面识别和攻略匹配结果为准。</li>
+        <li>不自动购买、换装或充值。助手本身无需连接 AI 服务，游戏仍需正常联网。</li>
+        <li>本项目是独立开源工具，与游戏官方无关联。</li>
+      </ul>
 
       <h2>技术信息</h2>
       <ul>
-        <li>语言 / 框架：Swift · SwiftPM 原生包</li>
-        <li>识别引擎：Apple Vision 框架（OCR + 图像匹配）</li>
+        <li>开发语言与构建：Swift · Swift Package Manager</li>
+        <li>画面识别：Apple Vision 文字识别，结合本地图像特征判断</li>
         <li>包含组件：WaltzCore（核心库）、WaltzAssistant（主程序）、WaltzInspect（调试工具）</li>
       </ul>
 

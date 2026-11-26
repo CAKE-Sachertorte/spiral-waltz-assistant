@@ -67,7 +67,7 @@ public final class VisionReader {
         request.recognitionLanguages = ["zh-Hans", "en-US"]
         request.usesLanguageCorrection = false
         request.minimumTextHeight = 0.008
-        request.customWords = database.characters.flatMap { [$0.name] + $0.aliases } + Array(SceneClassifier.menuLabels) + ["和她聊聊", "返回", "军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘", "玛格达"]
+        request.customWords = database.characters.flatMap { [$0.name] + $0.aliases } + Array(SceneClassifier.menuLabels) + ["和她聊聊", "返回", "军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘", "玛格达", "冈萨洛·乔卡瑟尔", "玛菲利娅", "玛菲利娅·赫尔"]
         try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
         var lines = (request.results ?? []).compactMap { observation -> TextBox? in
             guard let text = observation.topCandidates(1).first else { return nil }
@@ -78,7 +78,7 @@ public final class VisionReader {
         // The purple badge is easy to miss when Vision analyzes the whole illustrated scene.
         // Retry this small region on its own only if the first pass cannot identify a name.
         let badge = UnitRect(x: 0.52, y: 0.66, width: 0.47, height: 0.16)
-        let hasName = lines.contains { $0.center.y > 0.66 && $0.center.y < 0.82 && $0.center.x > 0.48 && database.character(named: $0.text) != nil }
+        let hasName = lines.contains { $0.confidence >= 0.25 && $0.center.y > 0.66 && $0.center.y < 0.82 && $0.center.x > 0.48 && database.character(named: $0.text) != nil }
         if !hasName, let nameImage = cropImage(image, rect: badge) {
             let focused = VNRecognizeTextRequest()
             focused.recognitionLevel = .accurate
@@ -87,7 +87,7 @@ public final class VisionReader {
             focused.customWords = request.customWords
             try VNImageRequestHandler(cgImage: nameImage, options: [:]).perform([focused])
             for result in focused.results ?? [] {
-                guard let candidate = result.topCandidates(1).first, database.character(named: candidate.string) != nil else { continue }
+                guard let candidate = result.topCandidates(5).first(where: { database.character(named: $0.string) != nil }) else { continue }
                 let b = result.boundingBox
                 lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence),
                                      rect: UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
@@ -127,9 +127,13 @@ public final class VisionReader {
         }
         if initial.scene == .unknown || initial.scene == .danceScene || normalize(initial.text).contains("查看攻略") {
             // White competition labels can be missed against the illustrated background.
-            // Locate the text in its button area; never fall back to a fixed click point.
-            let focused = try regionLines(image, region: UnitRect(x: 0.72, y: 0.80, width: 0.27, height: 0.19))
-            lines += focused.filter { normalize($0.text) == "跳过" && $0.confidence >= 0.25 }
+            // Re-read the whole bottom strip: the final continue hint is centered,
+            // while the skip button sits on the right. Both can be missed in full OCR.
+            let focused = try regionLines(image, region: UnitRect(x: 0.015, y: 0.79, width: 0.97, height: 0.19))
+            lines += focused.filter {
+                let key = normalize($0.text)
+                return $0.confidence >= 0.25 && (["跳过", "查看攻略"].contains(key) || key.contains("点击屏幕继"))
+            }
         }
         return classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
     }
@@ -162,7 +166,7 @@ public final class VisionReader {
         return nil
     }
     private func recognizedHeartScores(_ image: CGImage, lines: [TextBox]) throws -> [Double] {
-        let badgeCenter = lines.first { $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.character(named: $0.text) != nil }?.center.y
+        let badgeCenter = lines.first { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.character(named: $0.text) != nil }?.center.y
         let wide = Double(image.width) / Double(image.height) > 0.52
         let centerY = wide ? badgeCenter.map { $0 - 0.091 * Double(image.width) / Double(image.height) } ?? 0.684 : 0.684
         return try PixelImage(image).heartScores(centerY: centerY)

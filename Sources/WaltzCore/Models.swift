@@ -43,6 +43,10 @@ public struct Observation: Codable {
         if scene == .reward { return "reward" }
         if scene == .finished { return "finished" }
         if scene == .hub { return "hub:" + buttons.map { normalize($0.text) }.joined(separator: "|") }
+        if scene == .danceScene {
+            let hasSkip = lines.contains { normalize($0.text) == "跳过" && $0.center.x > 0.70 && $0.center.y > 0.70 }
+            return hasSkip ? "competition:skip" : "competition:continue"
+        }
         return [scene.rawValue, character ?? "", hearts.map(String.init) ?? "?", buttons.map { normalize($0.text) }.joined(separator: "|"), normalize(text)].joined(separator: ":")
     }
 }

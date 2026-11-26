@@ -5,9 +5,10 @@ public struct Engine {
     public static let center = UnitPoint(x: 0.5, y: 0.5)
     public private(set) var lockedCharacter: String?
     public var autoSwitch: Bool = false
-    public var isSwitching: Bool { phase == .switching }
+    public var isSwitching: Bool { phase == .switching || phase == .encounter }
+    public var competitionActive: Bool { [.dance, .danceScene, .danceDialogue, .beauty, .beautyScene, .beautyDialogue, .encounter].contains(phase) }
     public let database: GuideDatabase
-    private enum Phase { case ready, chat, intelligence, quiz, dance, danceScene, danceDialogue, beauty, beautyScene, beautyDialogue, switching }
+    private enum Phase { case ready, chat, intelligence, quiz, dance, danceScene, danceDialogue, beauty, beautyScene, beautyDialogue, switching, encounter }
     private var phase: Phase = .ready
     private var chats = 0
     private var rerolls = 0
@@ -22,9 +23,26 @@ public struct Engine {
         }
         // These recognized screens are safe entry points; no previous task is required.
         if o.scene == .reward {
+            let contestResult = normalize(o.text).contains("查看攻略") || o.lines.contains {
+                ["胜利", "失败"].contains(normalize($0.text)) && $0.rect.height > 0.035
+                    && (0.25...0.75).contains($0.center.y)
+            }
+            if contestResult && !competitionActive { phase = .encounter }
             if phase == .danceScene { phase = .danceDialogue }
             if phase == .beautyScene { phase = .beautyDialogue }
             return Decision(.tap, "确认结算，点屏幕中央", point: Self.center)
+        }
+        // Wandering can enter a contest against another player without a known NPC.
+        // Preserve the old task identity; the next NPC menu is confirmed after the contest.
+        if o.scene == .danceScene {
+            if !competitionActive { phase = .encounter }
+            if let skip = o.lines.first(where: { $0.confidence >= 0.25 && normalize($0.text) == "跳过" && $0.center.x > 0.70 && $0.center.y > 0.70 }) {
+                return Decision(.tap, "点击识别到的跳过按钮", point: skip.center)
+            }
+            return Decision(.tap, "等待比赛动画结束，间隔点屏幕中央", point: Self.center)
+        }
+        if o.scene == .unknown && competitionActive {
+            return Decision(.tap, "等待比赛动画结束，间隔点屏幕中央", point: Self.center)
         }
         if o.scene == .eavesdrop {
             let choices = o.buttons.sorted { $0.center.y < $1.center.y }
@@ -52,13 +70,13 @@ public struct Engine {
             return Decision(.tap, "推进对白，点屏幕中央", point: Self.center)
         }
         // During switching, skip character-change and blocked checks
-        if phase != .switching {
+        if !isSwitching {
             if let person = o.character, person != "玛格达", let lockedCharacter, person != lockedCharacter {
                 return Decision(.pause, "人物从\(lockedCharacter)切换为\(person)，已停止")
             }
             if o.scene == .blocked { return Decision(.pause, "当前界面不属于满心、情报或问答流程") }
         }
-        if phase == .switching && lockedCharacter == nil && (o.scene == .unknown || o.scene == .loading) {
+        if isSwitching && lockedCharacter == nil && (o.scene == .unknown || o.scene == .loading) {
             return Decision(.wait, "检索动画中，等待")
         }
         if lockedCharacter == nil {
@@ -70,7 +88,7 @@ public struct Engine {
             if resumeQuiz { phase = .quiz }
         }
         // Auto-switch: new character's menu appeared — update locked character, reset state
-        if phase == .switching && o.scene == .menu {
+        if isSwitching && o.scene == .menu {
             if let newName = o.character, newName != "玛格达" {
                 guard database.character(named: newName) != nil else {
                     return Decision(.pause, "新人物\(newName)不在攻略库中，已停止")
@@ -88,20 +106,8 @@ public struct Engine {
         func findLine(_ label: String) -> TextBox? {
             o.lines.filter { $0.confidence >= 0.25 }.first { normalize($0.text) == normalize(label) }
         }
-        func findDanceSkip() -> UnitPoint? {
-            o.lines.filter { $0.confidence >= 0.25 }
-                .first { normalize($0.text) == "跳过" && $0.center.x > 0.70 && $0.center.y > 0.70 }?
-                .center
-        }
-        if phase == .dance || phase == .beauty || phase == .danceScene || phase == .beautyScene {
-            if let skip = findDanceSkip() {
-                if phase == .dance { phase = .danceScene }
-                if phase == .beauty { phase = .beautyScene }
-                return Decision(.tap, "点击识别到的跳过按钮", point: skip)
-            }
-        }
         // Before scene switch: handle switching-phase special buttons and stop conditions
-        if phase == .switching {
+        if isSwitching {
             // Eavesdrop event: choose "不偷听" (the lower option)
             if let noEavesdrop = findLine("不偷听") {
                 return Decision(.tap, "选择不偷听", point: noEavesdrop.center)
@@ -179,13 +185,7 @@ public struct Engine {
             answers += 1
             return tap(options[answer.index], "\(answer.question)：选第\(answer.index + 1)项「\(options[answer.index].text)」")
         case .danceScene:
-            guard normalize(o.text).contains("总分") else { return Decision(.wait, "等待白字跳过按钮或比赛结算") }
-            if phase == .dance || phase == .danceScene {
-                phase = .danceDialogue
-            } else if phase == .beauty || phase == .beautyScene {
-                phase = .beautyDialogue
-            } else { return Decision(.pause, "比赛界面出现时机异常，已停止") }
-            return Decision(.tap, "比赛结算，点屏幕中央", point: Self.center)
+            return Decision(.wait, "等待比赛画面更新") // Handled before NPC identity checks.
         case .reward, .eavesdrop, .hub, .finished:
             // Handled above, including when starting without a remembered NPC.
             return Decision(.wait, "等待界面更新")
@@ -193,7 +193,7 @@ public struct Engine {
             if phase == .chat || phase == .intelligence, o.skipVisible {
                 return Decision(.tap, "点击最左侧跳过键", point: Self.skipPoint)
             }
-            if phase == .switching {
+            if isSwitching {
                 return Decision(.tap, "推进对白，点屏幕中央", point: Self.center)
             }
             if phase == .dance || phase == .danceDialogue || phase == .beauty || phase == .beautyDialogue {
@@ -203,16 +203,13 @@ public struct Engine {
         case .loading:
             return Decision(.wait, "等待加载完成")
         case .unknown:
-            if phase == .dance || phase == .beauty || phase == .danceScene || phase == .beautyScene {
-                return Decision(.wait, "等待识别白字跳过按钮或结算")
-            }
-            if phase == .switching {
+            if isSwitching {
                 return Decision(.wait, "检索动画中，等待")
             }
             return Decision(.wait, "等待可识别的稳定画面")
         case .blocked:
             // During switching: ball hub menu with 闲逛/找人/离开舞会 buttons
-            if phase == .switching {
+            if isSwitching {
                 if let wander = findLine("闲逛") {
                     return Decision(.tap, "点击闲逛，检索下一个人", point: wander.center)
                 }
