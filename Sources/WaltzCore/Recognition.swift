@@ -10,6 +10,7 @@ public enum HeartClassifier {
 }
 public struct SceneClassifier {
     public static let menuLabels: Set<String> = ["和他聊聊", "一会儿再见", "打听情报", "好感度问答", "跳舞", "主动比美", "神秘商店"]
+    public static let topicLabels: Set<String> = ["军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘"]
     public static func wanderFinished(_ text: String) -> Bool {
         let key = normalize(text)
         return key.contains("基本上都和大家见过了")
@@ -28,7 +29,7 @@ public struct SceneClassifier {
         let labels = Set(left.map { normalize($0.text) })
         let protagonist = visible.contains { normalize($0.text) == "玛格达" && $0.center.x < 0.48 && (0.66...0.82).contains($0.center.y) }
         let npc = visible.filter { $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) }
-            .compactMap { database.character(named: $0.text)?.name }.first
+            .compactMap { database.badgeName(from: $0.text) }.first
         let name = npc ?? (protagonist ? "玛格达" : nil)
         func make(_ scene: Scene, _ buttons: [TextBox] = []) -> Observation {
             Observation(scene: scene, character: name, hearts: HeartClassifier.count(scores: heartScores), buttons: buttons,
@@ -66,8 +67,11 @@ public struct SceneClassifier {
         }
         let decline = visible.filter { normalize($0.text) == "不偷听" && (0.32...0.77).contains($0.center.y) && $0.rect.width < 0.45 }
         if !decline.isEmpty { return make(.eavesdrop, decline) }
-        if labels.contains("和他聊聊") || labels.intersection(Self.menuLabels).count >= 2 { return make(.menu, left + visible.filter { normalize($0.text) == "跳过" && (0.48...0.64).contains($0.center.x) && (0.32...0.77).contains($0.center.y) }) }
-        let topics = Set(["军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘"])
+        if labels.contains("和他聊聊") || labels.intersection(Self.menuLabels).count >= 2
+            || (name.map { GuideDatabase.decliningChatNames.contains($0) } == true && labels.contains("一会儿再见")) {
+            return make(.menu, left + visible.filter { normalize($0.text) == "跳过" && (0.48...0.64).contains($0.center.x) && (0.32...0.77).contains($0.center.y) })
+        }
+        let topics = Self.topicLabels
         if (labels.contains("返回") && !labels.isDisjoint(with: topics)) || labels.intersection(topics).count >= 2 { return make(.topics, left) }
         // Only buttons in the known answer bands. Never turn an arbitrary paragraph into a choice.
         let choices = visible.filter {

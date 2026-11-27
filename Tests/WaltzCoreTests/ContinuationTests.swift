@@ -11,7 +11,7 @@ final class ContinuationTests {
             var engine = Engine(database: db)
             let decision = engine.next(o)
             XCTAssertEqual(decision.kind, i < 2 ? .tap : .done)
-            if i == 0 { XCTAssertEqual(decision.point, Engine.center) }
+            if i == 0 { XCTAssertEqual(decision.kind, .tap) }
             if i == 1 {
                 XCTAssertEqual(o.scene, .eavesdrop)
                 XCTAssertEqual(decision.point.map { $0.x > 0.7 && $0.y > 0.6 }, true)

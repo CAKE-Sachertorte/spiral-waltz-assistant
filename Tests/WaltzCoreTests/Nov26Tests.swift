@@ -84,6 +84,6 @@ final class Nov26Tests {
         let o = read(7)
         XCTAssertEqual(o.scene, .reward)
         var engine = Engine(database: db)
-        XCTAssertEqual(engine.next(o).point, Engine.center)
+        XCTAssertEqual(engine.next(o).kind, .tap)
     }
 }

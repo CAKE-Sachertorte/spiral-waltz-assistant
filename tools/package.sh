@@ -19,8 +19,8 @@ cat > "$task_app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleDisplayName</key><string>舞会助手</string>
 <key>CFBundleExecutable</key><string>WaltzAssistant</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.3.3</string>
-<key>CFBundleVersion</key><string>14</string>
+<key>CFBundleShortVersionString</key><string>1.3.4</string>
+<key>CFBundleVersion</key><string>15</string>
 <key>CFBundleIconFile</key><string>WaltzIcon</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
@@ -37,5 +37,5 @@ xattr -dr com.apple.ResourceFork "$task_app" 2>/dev/null || true
 codesign --force --deep --sign - "$task_app"
 codesign --verify --deep --strict "$task_app"
 plutil -lint "$task_app/Contents/Info.plist"
-ditto -c -k --keepParent "$task_app" "$task_output/舞会助手-v1.3.3-mac-arm64.zip"
+ditto -c -k --keepParent "$task_app" "$task_output/舞会助手-v1.3.4-mac-arm64.zip"
 printf '%s\n' "$task_app"

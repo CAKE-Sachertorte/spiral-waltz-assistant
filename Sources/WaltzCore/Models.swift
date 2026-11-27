@@ -51,6 +51,7 @@ public struct Observation: Codable {
     }
 }
 public struct Decision: Equatable {
+    public var maximumIdenticalTaps: Int = 2
     public enum Kind: String { case tap, tapAndSkip, wait, done, pause }
     public var kind: Kind
     public var point: UnitPoint?

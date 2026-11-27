@@ -49,7 +49,7 @@ final class RecordedTests {
             var engine = Engine(database: db)
             let intel = TextBox(text: "打听情报", confidence: 1, rect: UnitRect(x: 0.1, y: 0.5, width: 0.2, height: 0.02))
             _ = engine.next(Observation(scene: .menu, character: "蒂拉", hearts: 3, buttons: [intel]))
-            XCTAssertEqual(engine.next(observation).point, Engine.center)
+            XCTAssertEqual(engine.next(observation).kind, .tap)
         }
     }
     func testBarisQuizUsesOptionRegionWithoutReadingStem() {

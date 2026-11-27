@@ -30,7 +30,13 @@ public struct Engine {
             if contestResult && !competitionActive { phase = .encounter }
             if phase == .danceScene { phase = .danceDialogue }
             if phase == .beautyScene { phase = .beautyDialogue }
-            return Decision(.tap, "确认结算，点屏幕中央", point: Self.center)
+            let hint = o.lines.first {
+                $0.confidence >= 0.25 && normalize($0.text).contains("点击屏幕继")
+                    && (0.25...0.92).contains($0.center.y)
+            }
+            var confirmation = Decision(.tap, hint == nil ? "确认结算，点屏幕中央" : "点击继续提示，确认结算", point: hint?.center ?? Self.center)
+            confirmation.maximumIdenticalTaps = 6
+            return confirmation
         }
         // Wandering can enter a contest against another player without a known NPC.
         // Preserve the old task identity; the next NPC menu is confirmed after the contest.
@@ -68,6 +74,13 @@ public struct Engine {
             }
 
             return Decision(.tap, "推进对白，点屏幕中央", point: Self.center)
+        }
+        if o.scene == .menu, let name = o.character, GuideDatabase.decliningChatNames.contains(name) {
+            guard let bye = o.buttons.first(where: { normalize($0.text) == "一会儿再见" }) else {
+                return Decision(.wait, "等待一会儿再见按钮")
+            }
+            phase = .switching
+            return Decision(.tap, "\(name)：不接受聊天，点击一会儿再见", point: bye.center)
         }
         // During switching, skip character-change and blocked checks
         if !isSwitching {

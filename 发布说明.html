@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>舞会助手 v1.3.3 · 发布说明</title>
+<title>舞会助手 v1.3.4 · 发布说明</title>
 <style>
   :root{
     --bg:#f6f7f9; --card:#ffffff; --ink:#1f2330; --sub:#5b6270; --line:#e8eaef;
@@ -74,7 +74,7 @@
 <div class="wrap">
   <div class="card">
     <div class="hero">
-      <span class="badge">v1.3.3 · 开源发布</span>
+      <span class="badge">v1.3.4 · 开源发布</span>
       <h1>舞会助手 Waltz Assistant</h1>
       <p class="lede">为《螺旋圆舞曲》舞会流程准备的 macOS 小助手。自动处理聊天、情报与好感问答，让重复操作轻松一点。画面识别与决策均在本机完成，无需 API Key，不上传截图。</p>
     </div>
@@ -90,37 +90,37 @@
       </ul>
 
       <h2>更新与纠错日志</h2>
-      <p><b>v1.3.3 · 2026-11-26</b><br>以下修复同时适用于 Mac 游戏客户端与 iPhone 镜像。</p>
+      <p><b>v1.3.4 · 2026-11-27</b><br>同时适用于 Mac 游戏客户端与 iPhone 镜像。</p>
       <ul>
-        <li><b>人物铭牌：</b>兼容「玛菲利娅／玛菲利亚」两种写法。低置信度铭牌会继续局部复读，补充冈萨洛完整铭牌词表。</li>
-        <li><b>比赛跳过：</b>优先点击识别到的白字「跳过」。未识别到时，在已确认的比赛流程中每隔约 3 秒点击中央，等待动画自然结束。</li>
-        <li><b>结算接续：</b>胜利、失败与比赛结束画面继续确认，处理仍需再点一次屏幕的情况。</li>
-        <li><b>被动比美：</b>闲逛时遇到其他玩家并进入比美，不再视为流程异常；结算后继续闲逛，对手不会覆盖答题人物。</li>
-        <li><b>答案匹配：</b>兼容「隐身魔法／隐形魔法」「真有效吗／真的有效吗」等价文本，修复吉当、琉、妮柯斯等人的相关问答。</li>
+        <li><b>人物菜单：</b>补读卡洛斯等人物的聊天、告别按钮，避免停在菜单却反复点击中央。</li>
+        <li><b>好感度结算：</b>优先点击「点击屏幕继续」提示，增加确认重试次数，减少动画延迟造成的卡住。</li>
+        <li><b>聊天话题：</b>修复汉密尔顿「冒险」等话题文字漏读或误读，减少重复返回刷新。</li>
+        <li><b>拒绝聊天：</b>遇到琳娜、劳伦斯时直接点「一会儿再见」；开启自动切人后继续闲逛。</li>
+        <li><b>动物问答：</b>补读伊万题目中容易漏掉的单字「鸟」，读全选项后按攻略作答。</li>
       </ul>
-      <p class="lede">游戏窗口失去焦点时仍会停止，防止误点其他应用。</p>
       <details>
-        <summary>查看 v1.3.2 及此前修订</summary>
+        <summary>查看 v1.3.3 及此前修订</summary>
         <ul>
-          <li>支持 Mac 客户端布局，修复较高位置的问答首项漏读。</li>
-          <li>玛格达发言时保留已确认的答题人物。</li>
-          <li>闲逛偷听事件选择下方第二项，兼容「不关我事」等不同说法；识别到无新人物提示后停止。</li>
+          <li>兼容「玛菲利娅／玛菲利亚」铭牌写法，增强冈萨洛铭牌读取。</li>
+          <li>比赛优先点击白字「跳过」，未识别到时在比赛流程中间隔点击中央；支持被动比美与结算接续。</li>
+          <li>兼容「隐身魔法／隐形魔法」「真有效吗／真的有效吗」等答案写法。</li>
+          <li>支持 Mac 客户端布局、玛格达发言时的答题人物记忆，以及闲逛偷听事件与结束提示。</li>
         </ul>
       </details>
       <p><a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/blob/main/CHANGELOG.md">完整更新与纠错日志 →</a></p>
 
       <h2>下载</h2>
       <div class="dl">
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.3/WaltzAssistant-v1.3.3-mac-arm64.zip">
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.4/WaltzAssistant-v1.3.4-mac-arm64.zip">
           <div class="nm">Mac 应用包 · Apple Silicon</div>
-          <div class="sz">WaltzAssistant-v1.3.3-mac-arm64.zip</div>
+          <div class="sz">WaltzAssistant-v1.3.4-mac-arm64.zip</div>
         </a>
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.3/WaltzAssistant-v1.3.3-source.zip">
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.4/WaltzAssistant-v1.3.4-source.zip">
           <div class="nm">源码包</div>
-          <div class="sz">WaltzAssistant-v1.3.3-source.zip</div>
+          <div class="sz">WaltzAssistant-v1.3.4-source.zip</div>
         </a>
       </div>
-      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.3">查看完整发布与下载</a>
+      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.4">查看完整发布与下载</a>
 
       <h2>系统要求</h2>
       <div class="meta">

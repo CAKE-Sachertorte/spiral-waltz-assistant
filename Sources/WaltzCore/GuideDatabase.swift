@@ -16,6 +16,7 @@ public struct QuizAnswer {
     public var question: String
 }
 public struct GuideDatabase: Codable {
+    public static let decliningChatNames: Set<String> = ["琳娜", "劳伦斯"]
     public var source: String
     public var sha256: String
     public var characters: [CharacterGuide]
@@ -35,6 +36,13 @@ public struct GuideDatabase: Codable {
         return characters.sorted { $0.name.count > $1.name.count }.first {
             let n = normalize($0.name)
             return n.count >= 1 && key.hasPrefix(n) && key.count <= n.count + 6
+        }
+    }
+    public func badgeName(from text: String) -> String? {
+        if let guide = character(named: text) { return guide.name }
+        let key = normalize(text)
+        return Self.decliningChatNames.first {
+            key == normalize($0) || key == normalize($0 + "·乔卡瑟尔")
         }
     }
     public func answer(character: String, text: String, options: [String]) -> QuizAnswer? {

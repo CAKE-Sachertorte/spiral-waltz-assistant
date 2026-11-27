@@ -67,7 +67,7 @@ public final class VisionReader {
         request.recognitionLanguages = ["zh-Hans", "en-US"]
         request.usesLanguageCorrection = false
         request.minimumTextHeight = 0.008
-        request.customWords = database.characters.flatMap { [$0.name] + $0.aliases } + Array(SceneClassifier.menuLabels) + ["和她聊聊", "返回", "军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘", "玛格达", "冈萨洛·乔卡瑟尔", "玛菲利娅", "玛菲利娅·赫尔"]
+        request.customWords = database.characters.flatMap { [$0.name] + $0.aliases } + Array(SceneClassifier.menuLabels) + ["和她聊聊", "返回", "军事", "风物", "冒险", "人际", "艺术", "时尚", "娱乐", "商业", "政治", "神秘", "玛格达", "冈萨洛·乔卡瑟尔", "琳娜·乔卡瑟尔", "劳伦斯·乔卡瑟尔", "玛菲利娅", "玛菲利娅·赫尔"]
         try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
         var lines = (request.results ?? []).compactMap { observation -> TextBox? in
             guard let text = observation.topCandidates(1).first else { return nil }
@@ -78,7 +78,7 @@ public final class VisionReader {
         // The purple badge is easy to miss when Vision analyzes the whole illustrated scene.
         // Retry this small region on its own only if the first pass cannot identify a name.
         let badge = UnitRect(x: 0.52, y: 0.66, width: 0.47, height: 0.16)
-        let hasName = lines.contains { $0.confidence >= 0.25 && $0.center.y > 0.66 && $0.center.y < 0.82 && $0.center.x > 0.48 && database.character(named: $0.text) != nil }
+        let hasName = lines.contains { $0.confidence >= 0.25 && $0.center.y > 0.66 && $0.center.y < 0.82 && $0.center.x > 0.48 && database.badgeName(from: $0.text) != nil }
         if !hasName, let nameImage = cropImage(image, rect: badge) {
             let focused = VNRecognizeTextRequest()
             focused.recognitionLevel = .accurate
@@ -87,7 +87,7 @@ public final class VisionReader {
             focused.customWords = request.customWords
             try VNImageRequestHandler(cgImage: nameImage, options: [:]).perform([focused])
             for result in focused.results ?? [] {
-                guard let candidate = result.topCandidates(5).first(where: { database.character(named: $0.string) != nil }) else { continue }
+                guard let candidate = result.topCandidates(5).first(where: { database.badgeName(from: $0.string) != nil }) else { continue }
                 let b = result.boundingBox
                 lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence),
                                      rect: UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
@@ -101,28 +101,25 @@ public final class VisionReader {
         let initial = classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
         // On dark buttons Vision can omit an entire label, even when neighboring buttons
         // are recognized. Re-read only the menu, accepting exact known labels and positions.
-        let partialMenu = initial.character != nil && (initial.scene == .unknown || initial.scene == .dialogue)
-            && lines.contains { $0.center.x < 0.48 && (0.32...0.77).contains($0.center.y) && SceneClassifier.menuLabels.contains(normalize($0.text)) }
+        let partialMenu = initial.character != nil && [.unknown, .dialogue, .answers].contains(initial.scene)
         if initial.scene == .menu || partialMenu {
-            let menu = UnitRect(x: 0.015, y: 0.32, width: 0.61, height: 0.45)
-            if let menuImage = cropImage(image, rect: menu) {
-                let focused = VNRecognizeTextRequest()
-                focused.recognitionLevel = .accurate
-                focused.recognitionLanguages = ["zh-Hans"]
-                focused.usesLanguageCorrection = false
-                focused.minimumTextHeight = 0.015
-                focused.customWords = Array(SceneClassifier.menuLabels) + ["和她聊聊", "跳过"]
-                try VNImageRequestHandler(cgImage: menuImage, options: [:]).perform([focused])
-                for result in focused.results ?? [] {
-                    guard let candidate = result.topCandidates(1).first, candidate.confidence >= 0.25,
-                          (SceneClassifier.menuLabels.contains(normalize(candidate.string)) || normalize(candidate.string) == "跳过") else { continue }
-                    let b = result.boundingBox
-                    let recovered = TextBox(text: candidate.string, confidence: candidate.confidence,
-                                            rect: UnitRect(x: menu.x + b.minX * menu.width, y: menu.y + (1 - b.maxY) * menu.height,
-                                                           width: b.width * menu.width, height: b.height * menu.height))
-                    guard !lines.contains(where: { normalize($0.text) == normalize(recovered.text) && abs($0.center.y - recovered.center.y) < 0.025 && $0.center.x < 0.48 && $0.confidence >= 0.25 }) else { continue }
-                    lines.append(recovered)
+            // Keep portraits out of the text crop; their details can split short labels.
+            for width in [0.61, 0.40] {
+                let recovered = try regionLines(image, region: UnitRect(x: 0.015, y: 0.32, width: width, height: 0.45))
+                for b in recovered where b.confidence >= 0.25 && (SceneClassifier.menuLabels.contains(normalize(b.text)) || normalize(b.text) == "跳过") {
+                    if lines.contains(where: { normalize($0.text) == normalize(b.text) && $0.confidence >= b.confidence && abs($0.center.y - b.center.y) < 0.025 && abs($0.center.x - b.center.x) < 0.10 }) { continue }
+                    lines.removeAll { abs($0.center.y - b.center.y) < 0.025 && abs($0.center.x - b.center.x) < 0.10 }
+                    lines.append(b)
                 }
+            }
+        }
+        if initial.scene == .topics {
+            // A whole column can still misread one topic. Re-read that row with padding.
+            for row in initial.buttons where row.center.x < 0.38 && !SceneClassifier.topicLabels.contains(normalize(row.text)) && normalize(row.text) != "返回" {
+                let y = max(0.32, floor(row.rect.y * 100) / 100 - 0.02)
+                let h = min(0.77 - y, max(0.075, row.rect.height + 0.05))
+                let recovered = try regionLines(image, region: UnitRect(x: 0.015, y: y, width: 0.40, height: h))
+                lines += recovered.filter { SceneClassifier.topicLabels.contains(normalize($0.text)) }
             }
         }
         if initial.scene == .unknown || initial.scene == .danceScene || normalize(initial.text).contains("查看攻略") {
@@ -135,7 +132,9 @@ public final class VisionReader {
                 return $0.confidence >= 0.25 && (["跳过", "查看攻略"].contains(key) || key.contains("点击屏幕继"))
             }
         }
-        return classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
+        let result = classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
+        if !preferOptions && result.scene == .answers, let quiz = try readOptions(image) { return quiz }
+        return result
     }
     private func readOptions(_ image: CGImage) throws -> Observation? {
         let classifier = SceneClassifier(database: database)
@@ -146,7 +145,18 @@ public final class VisionReader {
         for region in [UnitRect(x: 0.015, y: optionY, width: 0.40, height: optionHeight),
                        UnitRect(x: 0.65, y: optionY, width: 0.35, height: optionHeight)] {
             var lines = try regionLines(image, region: region)
-            guard classifier.classify(lines: lines, heartScores: [], skip: false, wideLayout: wideLayout).scene == .answers else { continue }
+            let first = classifier.classify(lines: lines, heartScores: [], skip: false, wideLayout: wideLayout)
+            guard first.scene == .answers else { continue }
+            if first.buttons.count == 3 {
+                // A tiny crop shift can recover a single-character option dropped by Vision.
+                // Adopt it only when it reveals a complete, known four-option question.
+                let alternate = try regionLines(image, region: UnitRect(x: region.x, y: region.y + 0.01, width: region.width, height: region.height))
+                let keys = classifier.classify(lines: alternate, heartScores: [], skip: false, wideLayout: wideLayout).buttons.map { normalize($0.text) }
+                if keys.count == 4 && Set(keys).count == 4 && database.questions.contains(where: { q in
+                    let known = Set(q.answers.values.flatMap { $0 }.map(normalize))
+                    return q.answers.count == 4 && keys.allSatisfy { known.contains($0) }
+                }) { lines = alternate }
+            }
             lines += try regionLines(image, region: UnitRect(x: 0.015, y: wideLayout ? 0.66 : 0.706, width: 0.97, height: wideLayout ? 0.09 : 0.055))
             let quiz = classifier.classify(lines: lines, heartScores: try recognizedHeartScores(image, lines: lines), skip: false, wideLayout: wideLayout)
             guard quiz.scene == .answers, let name = quiz.character else { continue }
@@ -166,7 +176,7 @@ public final class VisionReader {
         return nil
     }
     private func recognizedHeartScores(_ image: CGImage, lines: [TextBox]) throws -> [Double] {
-        let badgeCenter = lines.first { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.character(named: $0.text) != nil }?.center.y
+        let badgeCenter = lines.first { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.badgeName(from: $0.text) != nil }?.center.y
         let wide = Double(image.width) / Double(image.height) > 0.52
         let centerY = wide ? badgeCenter.map { $0 - 0.091 * Double(image.width) / Double(image.height) } ?? 0.684 : 0.684
         return try PixelImage(image).heartScores(centerY: centerY)
@@ -178,6 +188,9 @@ public final class VisionReader {
         request.recognitionLanguages = ["zh-Hans", "en-US"]
         request.usesLanguageCorrection = false
         request.minimumTextHeight = 0.015
+        request.recognitionLanguages = ["zh-Hans"]
+        request.customWords = Array(SceneClassifier.menuLabels) + Array(SceneClassifier.topicLabels)
+            + database.questions.flatMap { $0.answers.values.flatMap { $0 } }
         try VNImageRequestHandler(cgImage: cropped, options: [:]).perform([request])
         return (request.results ?? []).compactMap { result in
             guard let candidate = result.topCandidates(1).first else { return nil }
