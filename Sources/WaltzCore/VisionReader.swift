@@ -83,19 +83,25 @@ public final class VisionReader {
                 + [0.66, 0.71, 0.755].map { UnitRect(x: 0.52, y: $0, width: 0.47, height: 0.065) }
             for badge in badges {
                 guard let nameImage = cropImage(image, rect: badge) else { continue }
-                let focused = VNRecognizeTextRequest()
-                focused.recognitionLevel = .accurate
-                focused.recognitionLanguages = ["zh-Hans"]
-                focused.usesLanguageCorrection = false
-                focused.customWords = request.customWords
-                try VNImageRequestHandler(cgImage: nameImage, options: [:]).perform([focused])
-                for result in focused.results ?? [] {
-                    guard let candidate = result.topCandidates(5).first(where: { database.badgeName(from: $0.string) != nil }) else { continue }
-                    let b = result.boundingBox
-                    let rect = UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
-                                        width: b.width * badge.width, height: b.height * badge.height)
-                    guard rect.center.x > 0.48 && (0.66...0.82).contains(rect.center.y) else { continue }
-                    lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence), rect: rect))
+                // Short names can disappear or change characters at small capture sizes.
+                // Retry the same pixels enlarged, rather than treating a misread as an alias.
+                let samples = nameImage.width < 600 ? [nameImage, textImage(nameImage, minimumWidth: 600)] : [nameImage]
+                for sample in samples {
+                    let focused = VNRecognizeTextRequest()
+                    focused.recognitionLevel = .accurate
+                    focused.recognitionLanguages = ["zh-Hans"]
+                    focused.usesLanguageCorrection = false
+                    focused.customWords = request.customWords
+                    try VNImageRequestHandler(cgImage: sample, options: [:]).perform([focused])
+                    for result in focused.results ?? [] {
+                        guard let candidate = result.topCandidates(5).first(where: { database.badgeName(from: $0.string) != nil }) else { continue }
+                        let b = result.boundingBox
+                        let rect = UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
+                                            width: b.width * badge.width, height: b.height * badge.height)
+                        guard rect.center.x > 0.48 && (0.66...0.82).contains(rect.center.y) else { continue }
+                        lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence), rect: rect))
+                    }
+                    if lines.contains(where: { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.badgeName(from: $0.text) != nil }) { break }
                 }
                 if lines.contains(where: { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.badgeName(from: $0.text) != nil }) { break }
             }
@@ -119,9 +125,36 @@ public final class VisionReader {
                 }
             }
         }
-        if initial.scene == .topics {
+        // A failed whole-frame read may call a topic list an answer page. Verify the
+        // column independently before accepting that classification; never infer a topic
+        // from row count or from the engine's phase.
+        if [.topics, .answers, .dialogue, .unknown].contains(initial.scene) {
+            let recovered = try regionLines(image, region: UnitRect(x: 0.015, y: 0.32, width: 0.40, height: 0.45),
+                                            words: Array(SceneClassifier.topicLabels) + ["返回"], minimumWidth: 600)
+                .filter { $0.confidence >= 0.25 && (SceneClassifier.topicLabels.contains(normalize($0.text)) || normalize($0.text) == "返回") }
+            if classifier.classify(lines: recovered, heartScores: [], skip: false, wideLayout: wideLayout).scene == .topics {
+                for b in recovered {
+                    lines.removeAll { abs($0.center.y - b.center.y) < 0.025 && abs($0.center.x - b.center.x) < 0.10 }
+                    lines.append(b)
+                }
+            }
+        }
+        let topicView = classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
+        if topicView.scene == .topics {
+            // An omitted row has no box to retry. Overlapping strips recover its text
+            // only after the page is independently confirmed as a topic list.
+            if Set(topicView.buttons.map { normalize($0.text) }).intersection(SceneClassifier.topicLabels).count < 3 {
+                for y in [0.32, 0.41, 0.50, 0.59, 0.63] {
+                    let recovered = try regionLines(image, region: UnitRect(x: 0.015, y: y, width: 0.40, height: 0.14),
+                                                    words: Array(SceneClassifier.topicLabels), minimumWidth: 600)
+                    for b in recovered where b.confidence >= 0.25 && SceneClassifier.topicLabels.contains(normalize(b.text)) {
+                        lines.removeAll { abs($0.center.y - b.center.y) < 0.025 && abs($0.center.x - b.center.x) < 0.10 }
+                        lines.append(b)
+                    }
+                }
+            }
             // A whole column can still misread one topic. Re-read that row with padding.
-            for row in initial.buttons where row.center.x < 0.38 && !SceneClassifier.topicLabels.contains(normalize(row.text)) && normalize(row.text) != "返回" {
+            for row in topicView.buttons where row.center.x < 0.38 && !SceneClassifier.topicLabels.contains(normalize(row.text)) && normalize(row.text) != "返回" {
                 let y = max(0.32, floor(row.rect.y * 100) / 100 - 0.02)
                 let h = min(0.77 - y, max(0.075, row.rect.height + 0.05))
                 let recovered = try regionLines(image, region: UnitRect(x: 0.015, y: y, width: 0.40, height: h))
@@ -215,7 +248,16 @@ public final class VisionReader {
         let centerY = wide ? badgeCenter.map { $0 - 0.091 * Double(image.width) / Double(image.height) } ?? 0.684 : 0.684
         return try PixelImage(image).heartScores(centerY: centerY)
     }
-    private func regionLines(_ image: CGImage, region: UnitRect, words: [String]? = nil) throws -> [TextBox] {
+    private func textImage(_ image: CGImage, minimumWidth: Int) -> CGImage {
+        guard image.width < minimumWidth else { return image }
+        let height = Int(Double(minimumWidth) * Double(image.height) / Double(image.width))
+        guard let context = CGContext(data: nil, width: minimumWidth, height: height, bitsPerComponent: 8, bytesPerRow: minimumWidth * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else { return image }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: minimumWidth, height: height))
+        return context.makeImage() ?? image
+    }
+    private func regionLines(_ image: CGImage, region: UnitRect, words: [String]? = nil, minimumWidth: Int = 0) throws -> [TextBox] {
         guard let cropped = cropImage(image, rect: region) else { return [] }
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
@@ -225,7 +267,7 @@ public final class VisionReader {
         request.recognitionLanguages = ["zh-Hans"]
         request.customWords = words ?? (Array(SceneClassifier.menuLabels) + Array(SceneClassifier.topicLabels)
             + database.questions.flatMap { $0.answers.values.flatMap { $0 } })
-        try VNImageRequestHandler(cgImage: cropped, options: [:]).perform([request])
+        try VNImageRequestHandler(cgImage: textImage(cropped, minimumWidth: minimumWidth), options: [:]).perform([request])
         return (request.results ?? []).compactMap { result in
             guard let candidate = result.topCandidates(1).first else { return nil }
             let b = result.boundingBox

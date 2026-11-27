@@ -10,6 +10,9 @@ func XCTAssertNil<T>(_ value: T?, file: String = #filePath, line: Int = #line) {
     assertions += 1
     if value != nil { failures += 1; print("FAIL \(file):\(line): expected nil") }
 }
+let nov28 = Nov28Tests()
+nov28.testNaerBadgeAndIntelligenceAcrossSizes()
+nov28.testAlminasTopicsDoNotBecomeAnUnstartedQuiz()
 let gonzaloScale=GonzaloScaleTests()
 gonzaloScale.testGonzaloBadgeAcrossCaptureSizes()
 gonzaloScale.testGonzaloMisreadIsLimitedToExactBadgeNames()
