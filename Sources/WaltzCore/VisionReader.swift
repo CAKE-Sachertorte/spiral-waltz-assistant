@@ -132,6 +132,18 @@ public final class VisionReader {
                 return $0.confidence >= 0.25 && (["跳过", "查看攻略"].contains(key) || key.contains("点击屏幕继"))
             }
         }
+        if initial.scene == .danceScene && !lines.contains(where: {
+            $0.confidence >= 0.25 && normalize($0.text) == "跳过" && $0.center.x > 0.70 && $0.center.y > 0.70
+        }) {
+            // Thin overlapping rows exclude costume frames that merge into the label
+            // in a large crop. Accept only an actual exact OCR label, never a fixed tap.
+            for row in 0..<10 {
+                let region = UnitRect(x: 0.70, y: 0.795 + Double(row) * 0.015, width: 0.29, height: 0.035)
+                let recovered = try regionLines(image, region: region, words: ["跳过"])
+                    .filter { $0.confidence >= 0.25 && normalize($0.text) == "跳过" && $0.center.x > 0.70 }
+                if !recovered.isEmpty { lines += recovered; break }
+            }
+        }
         let result = classifier.classify(lines: lines, heartScores: scores, skip: skip, wideLayout: wideLayout)
         if !preferOptions && result.scene == .answers, let quiz = try readOptions(image) { return quiz }
         return result
@@ -151,11 +163,27 @@ public final class VisionReader {
                 // A tiny crop shift can recover a single-character option dropped by Vision.
                 // Adopt it only when it reveals a complete, known four-option question.
                 let alternate = try regionLines(image, region: UnitRect(x: region.x, y: region.y + 0.01, width: region.width, height: region.height))
-                let keys = classifier.classify(lines: alternate, heartScores: [], skip: false, wideLayout: wideLayout).buttons.map { normalize($0.text) }
+                let keys = classifier.classify(lines: alternate, heartScores: [], skip: false, wideLayout: wideLayout).buttons.map { GuideDatabase.answerKey($0.text) }
                 if keys.count == 4 && Set(keys).count == 4 && database.questions.contains(where: { q in
-                    let known = Set(q.answers.values.flatMap { $0 }.map(normalize))
+                    let known = Set(q.answers.values.flatMap { $0 }.map(GuideDatabase.answerKey))
                     return q.answers.count == 4 && keys.allSatisfy { known.contains($0) }
                 }) { lines = alternate }
+            }
+            // Restrict a retry's vocabulary to a question identified by multiple exact
+            // choices. Only adopt a complete distinct set; never infer the unread answer.
+            let keys = first.buttons.map { GuideDatabase.answerKey($0.text) }
+            let candidates = database.questions.filter { q in
+                let known = Set(q.answers.values.flatMap { $0 }.map(GuideDatabase.answerKey))
+                return keys.filter { known.contains($0) }.count >= 2
+            }
+            if candidates.count == 1, let question = candidates.first {
+                let known = Set(question.answers.values.flatMap { $0 }.map(GuideDatabase.answerKey))
+                if keys.count != question.answers.count || !keys.allSatisfy({ known.contains($0) }) {
+                    let words = question.answers.values.flatMap { $0 } + ["隐身魔法"]
+                    let retry = try regionLines(image, region: region, words: words)
+                    let recovered = classifier.classify(lines: retry, heartScores: [], skip: false, wideLayout: wideLayout).buttons.map { GuideDatabase.answerKey($0.text) }
+                    if recovered.count == question.answers.count && Set(recovered).count == recovered.count && recovered.allSatisfy({ known.contains($0) }) { lines = retry }
+                }
             }
             lines += try regionLines(image, region: UnitRect(x: 0.015, y: wideLayout ? 0.66 : 0.706, width: 0.97, height: wideLayout ? 0.09 : 0.055))
             let quiz = classifier.classify(lines: lines, heartScores: try recognizedHeartScores(image, lines: lines), skip: false, wideLayout: wideLayout)
@@ -163,9 +191,9 @@ public final class VisionReader {
             if name == "玛格达" {
                 // Only promote a complete known option set. Partial/misread choices must
                 // still get the full-frame pass; the engine retains the actual NPC target.
-                let keys = quiz.buttons.map { normalize($0.text) }
+                let keys = quiz.buttons.map { GuideDatabase.answerKey($0.text) }
                 let complete = database.questions.contains { q in
-                    let known = Set(q.answers.values.flatMap { $0 }.map(normalize))
+                    let known = Set(q.answers.values.flatMap { $0 }.map(GuideDatabase.answerKey))
                     return q.answers.count == keys.count && Set(keys).count == keys.count && keys.allSatisfy { known.contains($0) }
                 }
                 if complete { return quiz }
@@ -181,7 +209,7 @@ public final class VisionReader {
         let centerY = wide ? badgeCenter.map { $0 - 0.091 * Double(image.width) / Double(image.height) } ?? 0.684 : 0.684
         return try PixelImage(image).heartScores(centerY: centerY)
     }
-    private func regionLines(_ image: CGImage, region: UnitRect) throws -> [TextBox] {
+    private func regionLines(_ image: CGImage, region: UnitRect, words: [String]? = nil) throws -> [TextBox] {
         guard let cropped = cropImage(image, rect: region) else { return [] }
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
@@ -189,8 +217,8 @@ public final class VisionReader {
         request.usesLanguageCorrection = false
         request.minimumTextHeight = 0.015
         request.recognitionLanguages = ["zh-Hans"]
-        request.customWords = Array(SceneClassifier.menuLabels) + Array(SceneClassifier.topicLabels)
-            + database.questions.flatMap { $0.answers.values.flatMap { $0 } }
+        request.customWords = words ?? (Array(SceneClassifier.menuLabels) + Array(SceneClassifier.topicLabels)
+            + database.questions.flatMap { $0.answers.values.flatMap { $0 } })
         try VNImageRequestHandler(cgImage: cropped, options: [:]).perform([request])
         return (request.results ?? []).compactMap { result in
             guard let candidate = result.topCandidates(1).first else { return nil }

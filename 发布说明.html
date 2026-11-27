@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>舞会助手 v1.3.4 · 发布说明</title>
+<title>舞会助手 v1.3.5 · 发布说明</title>
 <style>
   :root{
     --bg:#f6f7f9; --card:#ffffff; --ink:#1f2330; --sub:#5b6270; --line:#e8eaef;
@@ -74,7 +74,7 @@
 <div class="wrap">
   <div class="card">
     <div class="hero">
-      <span class="badge">v1.3.4 · 开源发布</span>
+      <span class="badge">v1.3.5 · 开源发布</span>
       <h1>舞会助手 Waltz Assistant</h1>
       <p class="lede">为《螺旋圆舞曲》舞会流程准备的 macOS 小助手。自动处理聊天、情报与好感问答，让重复操作轻松一点。画面识别与决策均在本机完成，无需 API Key，不上传截图。</p>
     </div>
@@ -90,17 +90,19 @@
       </ul>
 
       <h2>更新与纠错日志</h2>
-      <p><b>v1.3.4 · 2026-11-27</b><br>同时适用于 Mac 游戏客户端与 iPhone 镜像。</p>
+      <p><b>v1.3.5 · 2026-11-27</b><br>同时适用于 Mac 游戏客户端与 iPhone 镜像。</p>
       <ul>
-        <li><b>人物菜单：</b>补读卡洛斯等人物的聊天、告别按钮，避免停在菜单却反复点击中央。</li>
-        <li><b>好感度结算：</b>优先点击「点击屏幕继续」提示，增加确认重试次数，减少动画延迟造成的卡住。</li>
-        <li><b>聊天话题：</b>修复汉密尔顿「冒险」等话题文字漏读或误读，减少重复返回刷新。</li>
-        <li><b>拒绝聊天：</b>遇到琳娜、劳伦斯时直接点「一会儿再见」；开启自动切人后继续闲逛。</li>
-        <li><b>动物问答：</b>补读伊万题目中容易漏掉的单字「鸟」，读全选项后按攻略作答。</li>
+        <li><b>舞会结束：</b>根据「完成进度」「行动目标」「获得奖励」等固定标题识别结束页并停止，不依赖变化的任务内容。</li>
+        <li><b>琳娜互动：</b>有「主动比美」时先完成比美，再点「一会儿再见」；不尝试聊天。劳伦斯继续直接告别。</li>
+        <li><b>复杂后景：</b>增加右下「跳过」按钮的分行识别，减少服装边框干扰；认不准时仍在比赛流程中间隔点击中央。</li>
+        <li><b>白星铭牌：</b>兼容被读成「自星」的情况，恢复人物菜单与问答接续。</li>
+        <li><b>问答补读：</b>修复兰达尔「治疗魔法」等选项误读造成的答案不匹配；选项不全或无法确认时仍不猜选。</li>
       </ul>
       <details>
-        <summary>查看 v1.3.3 及此前修订</summary>
+        <summary>查看 v1.3.4 及此前修订</summary>
         <ul>
+          <li>补读卡洛斯等人物的聊天、告别菜单，以及汉密尔顿「冒险」话题和伊万的「鸟」选项。</li>
+          <li>好感度结算优先点击继续提示，增加确认重试次数。</li>
           <li>兼容「玛菲利娅／玛菲利亚」铭牌写法，增强冈萨洛铭牌读取。</li>
           <li>比赛优先点击白字「跳过」，未识别到时在比赛流程中间隔点击中央；支持被动比美与结算接续。</li>
           <li>兼容「隐身魔法／隐形魔法」「真有效吗／真的有效吗」等答案写法。</li>
@@ -111,16 +113,16 @@
 
       <h2>下载</h2>
       <div class="dl">
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.4/WaltzAssistant-v1.3.4-mac-arm64.zip">
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.5/WaltzAssistant-v1.3.5-mac-arm64.zip">
           <div class="nm">Mac 应用包 · Apple Silicon</div>
-          <div class="sz">WaltzAssistant-v1.3.4-mac-arm64.zip</div>
+          <div class="sz">WaltzAssistant-v1.3.5-mac-arm64.zip</div>
         </a>
-        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.4/WaltzAssistant-v1.3.4-source.zip">
+        <a href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/download/v1.3.5/WaltzAssistant-v1.3.5-source.zip">
           <div class="nm">源码包</div>
-          <div class="sz">WaltzAssistant-v1.3.4-source.zip</div>
+          <div class="sz">WaltzAssistant-v1.3.5-source.zip</div>
         </a>
       </div>
-      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.4">查看完整发布与下载</a>
+      <a class="btn" href="https://github.com/CAKE-Sachertorte/spiral-waltz-assistant/releases/tag/v1.3.5">查看完整发布与下载</a>
 
       <h2>系统要求</h2>
       <div class="meta">

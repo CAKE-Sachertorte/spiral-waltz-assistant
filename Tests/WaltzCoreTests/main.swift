@@ -10,6 +10,13 @@ func XCTAssertNil<T>(_ value: T?, file: String = #filePath, line: Int = #line) {
     assertions += 1
     if value != nil { failures += 1; print("FAIL \(file):\(line): expected nil") }
 }
+let nov27 = Nov27Tests()
+nov27.testBallEndUsesHeadingsInsteadOfVariableMissions()
+nov27.testLinnaBeautyBeforeGoodbyeWithoutChattingOrReplacingNpc()
+nov27.testComplexCostumeStillFindsActualSkipAndBadge()
+nov27.testOtherAttachedScreensUseRecognizedControls()
+nov27.testRandallMagicRereadsMisrecognizedHealing()
+nov27.testPartialHubAlsoResetsLinnaEncounter()
 let recovery = MenuRecoveryTests()
 recovery.testKalosMenuIsRecoveredInsteadOfAdvancingDialogue()
 recovery.testRewardUsesContinueHintAndAllowsAnimationRetries()

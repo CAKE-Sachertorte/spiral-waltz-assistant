@@ -15,11 +15,12 @@ public struct Engine {
     private var answers = 0
     private var danced = false
     private var beautied = false
+    private var decliningBeauty: String?
     public var quizActive: Bool { phase == .quiz }
     public init(database: GuideDatabase) { self.database = database }
     public mutating func next(_ o: Observation) -> Decision {
         if o.scene == .finished || SceneClassifier.wanderFinished(o.text) {
-            return Decision(.done, "已与所有人见面，没有新人物，停止")
+            return Decision(.done, normalize(o.text).contains("完成进度") ? "舞会已结束，停止" : "已与所有人见面，没有新人物，停止")
         }
         // These recognized screens are safe entry points; no previous task is required.
         if o.scene == .reward {
@@ -64,6 +65,7 @@ public struct Engine {
         }
         if o.scene == .hub {
             guard let wander = o.buttons.first(where: { normalize($0.text) == "闲逛" }) else { return Decision(.wait, "等待闲逛按钮") }
+            decliningBeauty = nil
             phase = .switching
             return Decision(.tap, "点击闲逛，检索下一个人", point: wander.center)
         }
@@ -76,6 +78,12 @@ public struct Engine {
             return Decision(.tap, "推进对白，点屏幕中央", point: Self.center)
         }
         if o.scene == .menu, let name = o.character, GuideDatabase.decliningChatNames.contains(name) {
+            if name == "琳娜", decliningBeauty != name,
+               let beauty = o.buttons.first(where: { normalize($0.text) == "主动比美" }) {
+                decliningBeauty = name
+                phase = .beauty
+                return Decision(.tap, "琳娜：主动比美，结束后告别", point: beauty.center)
+            }
             guard let bye = o.buttons.first(where: { normalize($0.text) == "一会儿再见" }) else {
                 return Decision(.wait, "等待一会儿再见按钮")
             }
@@ -127,6 +135,7 @@ public struct Engine {
             }
             // Ball hub menu: click 闲逛 regardless of scene classification
             if let wander = findLine("闲逛") {
+                decliningBeauty = nil
                 return Decision(.tap, "点击闲逛，检索下一个人", point: wander.center)
             }
         }
@@ -224,6 +233,7 @@ public struct Engine {
             // During switching: ball hub menu with 闲逛/找人/离开舞会 buttons
             if isSwitching {
                 if let wander = findLine("闲逛") {
+                    decliningBeauty = nil
                     return Decision(.tap, "点击闲逛，检索下一个人", point: wander.center)
                 }
                 return Decision(.wait, "等待闲逛按钮出现")

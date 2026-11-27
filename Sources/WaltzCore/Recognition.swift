@@ -38,7 +38,10 @@ public struct SceneClassifier {
         if ["连接已中断", "无法连接", "iphone正在使用", "重新连接", "请输入密码", "解锁iphone"].contains(where: { key.contains($0) }) {
             return make(.blocked)
         }
-        if Self.wanderFinished(text) { return make(.finished) }
+        let endHeadings = visible.filter { $0.center.x > 0.5 && (0.10...0.80).contains($0.center.y) && $0.rect.height > 0.035 }
+        if Self.wanderFinished(text) || (endHeadings.contains { normalize($0.text) == "完成进度" }
+            && endHeadings.contains { normalize($0.text) == "获得奖励" }
+            && visible.contains { normalize($0.text) == "行动目标" && $0.center.x > 0.5 }) { return make(.finished) }
         let navigation = visible.filter { $0.center.x > 0.65 && (0.32...0.77).contains($0.center.y) }
         let navLabels = Set(navigation.map { normalize($0.text) })
         if navLabels.contains("闲逛") && !navLabels.isDisjoint(with: ["事件信息", "找人", "离开舞会"]) { return make(.hub, navigation) }

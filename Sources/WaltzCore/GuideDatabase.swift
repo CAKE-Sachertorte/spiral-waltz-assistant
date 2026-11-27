@@ -39,7 +39,7 @@ public struct GuideDatabase: Codable {
         }
     }
     public func badgeName(from text: String) -> String? {
-        if let guide = character(named: text) { return guide.name }
+        if let guide = character(named: normalize(text) == "自星" ? "白星" : text) { return guide.name }
         let key = normalize(text)
         return Self.decliningChatNames.first {
             key == normalize($0) || key == normalize($0 + "·乔卡瑟尔")
@@ -100,7 +100,7 @@ public struct GuideDatabase: Codable {
         guard let first = results.first, results.allSatisfy({ $0.index == first.index }) else { return nil }
         return first
     }
-    private static func answerKey(_ text: String) -> String {
+    static func answerKey(_ text: String) -> String {
         var key = normalize(text)
         for (long, short) in [("黑色", "黑"), ("蓝色", "蓝"), ("绿色", "绿"), ("红色", "红"), ("报复", "复仇"), ("防御结界", "防御"), ("隐形魔法", "隐形"), ("隐身魔法", "隐形"), ("真有效吗", "真的有效吗"), ("结构问题", "体制问题")] {
             if key == long { key = short }
