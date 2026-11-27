@@ -10,6 +10,11 @@ func XCTAssertNil<T>(_ value: T?, file: String = #filePath, line: Int = #line) {
     assertions += 1
     if value != nil { failures += 1; print("FAIL \(file):\(line): expected nil") }
 }
+let event27=Nov27EventTests()
+event27.testEventStabilityIgnoresClockAndDialogueOcrButTracksChoices()
+event27.testArbitraryEventWordsChooseSecondDuringWanderingButNotQuiz()
+event27.testGonzaloBadgeAndRandallAnswerRemainRecognized()
+event27.testMenuStabilityIgnoresHudButTracksCharacterAndActions()
 let nov27 = Nov27Tests()
 nov27.testBallEndUsesHeadingsInsteadOfVariableMissions()
 nov27.testLinnaBeautyBeforeGoodbyeWithoutChattingOrReplacingNpc()

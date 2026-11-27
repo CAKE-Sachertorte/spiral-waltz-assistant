@@ -54,7 +54,7 @@ public struct Engine {
         if o.scene == .eavesdrop {
             let choices = o.buttons.sorted { $0.center.y < $1.center.y }
             // A quiz can temporarily expose only two choices while OCR is incomplete.
-            if phase == .quiz && !choices.contains(where: { ["不偷听", "不关我事"].contains(normalize($0.text)) }) {
+            if phase == .quiz {
                 return Decision(.wait, "问答选项未完整识别，等待重读")
             }
             let decline = choices.count == 2 ? choices[1] : choices.first { normalize($0.text) == "不偷听" }

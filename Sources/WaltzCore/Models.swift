@@ -43,6 +43,10 @@ public struct Observation: Codable {
         if scene == .reward { return "reward" }
         if scene == .finished { return "finished" }
         if scene == .hub { return "hub:" + buttons.map { normalize($0.text) }.joined(separator: "|") }
+        // Clock/counter OCR and typewriter dialogue are unrelated to these controls.
+        // Keep identity and hearts for NPC menus; choices still reset event stability.
+        if scene == .eavesdrop { return "eavesdrop:" + buttons.sorted { $0.center.y < $1.center.y }.map { normalize($0.text) }.joined(separator: "|") }
+        if scene == .menu { return ["menu", character ?? "", hearts.map(String.init) ?? "?", buttons.sorted { $0.center.y < $1.center.y }.map { normalize($0.text) }.joined(separator: "|")].joined(separator: ":") }
         if scene == .danceScene {
             let hasSkip = lines.contains { normalize($0.text) == "跳过" && $0.center.x > 0.70 && $0.center.y > 0.70 }
             return hasSkip ? "competition:skip" : "competition:continue"

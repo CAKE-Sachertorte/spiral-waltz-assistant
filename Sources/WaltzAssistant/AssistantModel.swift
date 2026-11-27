@@ -162,14 +162,15 @@ struct Calibration: Codable {
         var previous = "", stable = 0, waits = 0, actionCount = 0, repeatCount = 0
         var lastAction = "", lastActionAt = Date.distantPast
         let began = Date()
-        let maxActions = autoSwitch ? 200 : 80
-        let maxTime = autoSwitch ? 1800.0 : 480.0
+        let maxActions = autoSwitch ? 1000 : 80
+        let maxTime = autoSwitch ? 5400.0 : 480.0
         var windowID: CGWindowID?
         do {
             try await Task.sleep(nanoseconds: 500_000_000)
             while generation == token && !Task.isCancelled {
                 if DesktopDriver.emergencyTriggered() { throw DriverError.emergency }
-                if actionCount >= maxActions || Date().timeIntervalSince(began) > maxTime { stop("达到单次运行上限，已停止"); return }
+                if actionCount >= maxActions { stop("达到单次点击上限（\(maxActions)次），已停止"); return }
+                if Date().timeIntervalSince(began) > maxTime { stop("达到单次时长上限（\(Int(maxTime / 60))分钟），已停止"); return }
                 let captured = try await driver.capture()
                 guard generation == token, !Task.isCancelled else { return }
                 if let windowID, windowID != captured.id { throw DriverError.changedWindow }
