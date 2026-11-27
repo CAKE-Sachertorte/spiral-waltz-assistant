@@ -39,8 +39,10 @@ public struct GuideDatabase: Codable {
         }
     }
     public func badgeName(from text: String) -> String? {
-        if let guide = character(named: normalize(text) == "自星" ? "白星" : text) { return guide.name }
         let key = normalize(text)
+        // Exact badge-only OCR confusions; never apply substitutions to dialogue.
+        let corrections = ["自星": "白星", "网萨洛": "冈萨洛", "网萨洛乔卡瑟尔": "冈萨洛"]
+        if let guide = character(named: corrections[key] ?? text) { return guide.name }
         return Self.decliningChatNames.first {
             key == normalize($0) || key == normalize($0 + "·乔卡瑟尔")
         }

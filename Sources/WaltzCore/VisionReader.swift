@@ -77,21 +77,27 @@ public final class VisionReader {
         }
         // The purple badge is easy to miss when Vision analyzes the whole illustrated scene.
         // Retry this small region on its own only if the first pass cannot identify a name.
-        let badge = UnitRect(x: 0.52, y: 0.66, width: 0.47, height: 0.16)
         let hasName = lines.contains { $0.confidence >= 0.25 && $0.center.y > 0.66 && $0.center.y < 0.82 && $0.center.x > 0.48 && database.badgeName(from: $0.text) != nil }
-        if !hasName, let nameImage = cropImage(image, rect: badge) {
-            let focused = VNRecognizeTextRequest()
-            focused.recognitionLevel = .accurate
-            focused.recognitionLanguages = ["zh-Hans"]
-            focused.usesLanguageCorrection = false
-            focused.customWords = request.customWords
-            try VNImageRequestHandler(cgImage: nameImage, options: [:]).perform([focused])
-            for result in focused.results ?? [] {
-                guard let candidate = result.topCandidates(5).first(where: { database.badgeName(from: $0.string) != nil }) else { continue }
-                let b = result.boundingBox
-                lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence),
-                                     rect: UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
-                                                    width: b.width * badge.width, height: b.height * badge.height)))
+        if !hasName {
+            let badges = [UnitRect(x: 0.52, y: 0.66, width: 0.47, height: 0.16)]
+                + [0.66, 0.71, 0.755].map { UnitRect(x: 0.52, y: $0, width: 0.47, height: 0.065) }
+            for badge in badges {
+                guard let nameImage = cropImage(image, rect: badge) else { continue }
+                let focused = VNRecognizeTextRequest()
+                focused.recognitionLevel = .accurate
+                focused.recognitionLanguages = ["zh-Hans"]
+                focused.usesLanguageCorrection = false
+                focused.customWords = request.customWords
+                try VNImageRequestHandler(cgImage: nameImage, options: [:]).perform([focused])
+                for result in focused.results ?? [] {
+                    guard let candidate = result.topCandidates(5).first(where: { database.badgeName(from: $0.string) != nil }) else { continue }
+                    let b = result.boundingBox
+                    let rect = UnitRect(x: badge.x + b.minX * badge.width, y: badge.y + (1 - b.maxY) * badge.height,
+                                        width: b.width * badge.width, height: b.height * badge.height)
+                    guard rect.center.x > 0.48 && (0.66...0.82).contains(rect.center.y) else { continue }
+                    lines.append(TextBox(text: candidate.string, confidence: max(0.3, candidate.confidence), rect: rect))
+                }
+                if lines.contains(where: { $0.confidence >= 0.25 && $0.center.x > 0.48 && (0.66...0.82).contains($0.center.y) && database.badgeName(from: $0.text) != nil }) { break }
             }
         }
         let pixels = try PixelImage(image)
